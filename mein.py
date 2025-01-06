@@ -22,38 +22,43 @@ dbconfig = {'host': os.environ.get('host'),
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton('Search by movie name', callback_data='search_by_movie_name'))
-    markup.add(types.InlineKeyboardButton('Search by category', callback_data='search_by_category'))
-    markup.add(types.InlineKeyboardButton('Show popular movies', callback_data='show_popular'))
     user_name = message.from_user.first_name
-    # user_surname = message.from_user.last_name
-    # create_new_user(user_name, user_surname)
-    bot.send_message(message.chat.id, f"Hello {user_name}, welcome! Please choose an option:", reply_markup=markup)
+    user_surname = message.from_user.surname
+    create_new_user(user_name, user_surname)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = [
+        types.KeyboardButton('Search by title'),
+        types.KeyboardButton('Search by category and years'),
+        types.KeyboardButton('Show popular movies')
+    ]
+    markup.row(*buttons[:2])
+    markup.row(*buttons[2:])
+    bot.send_message(
+        message.chat.id,
+        f"Hello {user_name}, welcome! Please choose an option:",
+        reply_markup=markup
+    )
 
 
-@bot.callback_query_handler(
-    func=lambda call: call.data in ['search_by_movie_name', 'search_by_category', 'show_popular'])
-def callback_message(callback):
-    match callback.data:
-        case 'search_by_category':
-            bot.send_message(callback.message.chat.id, "<b>What categories do you like?</b>", parse_mode='html')
-            search_by_category(callback.message)
-        case 'search_by_movie_name':
-            bot.send_message(callback.message.chat.id, "<b>Please enter the movie title you want to search for:</b>", parse_mode='html')
-            bot.register_next_step_handler(callback.message, search_movie_by_title)
-        case 'show_popular_movies':
-            bot.register_next_step_handler(callback.message, search_popular_search)
+@bot.message_handler(func=lambda message: message.text in ['Search by title', 'Search by category and years', 'Show popular movies'])
+def handle_buttons(message):
+    match message.text:
+        case 'Search by category and years':
+            bot.send_message(message.chat.id, "<b>What categories do you like?</b>", parse_mode='html')
+            search_by_category(message)
+        case 'Search by title':
+            bot.send_message(message.chat.id, "<b>Please enter the movie title you want to search for:</b>", parse_mode='html')
+            bot.register_next_step_handler(message, search_movie_by_title)
+        case 'Show popular movies':
+            bot.register_next_step_handler(message, search_popular_search)
 
 
 def search_by_category(message):
-    reader = SearchMovieByCategory(**dbconfig)
+    reader = SearchMovieByCategory(**dbconfig) # BUG IS HEAR <----------------------
+    reader.reset_obj()
     reader.connect()
     categories = reader.get_all_category()
     markup = types.InlineKeyboardMarkup()
-    # for id, category in categories:
-    #     markup.add(types.InlineKeyboardButton(f'{category}', callback_data=f'category_id: {id}@{category}'))
-
     row = []
     for id, category in categories:
         row.append(types.InlineKeyboardButton(f'{category}', callback_data=f'category_id: {id}@{category}'))
@@ -62,7 +67,6 @@ def search_by_category(message):
             row = []
     if row:
         markup.row(*row)
-
     markup.add(types.InlineKeyboardButton(f'Finish selection', callback_data='Finish_selection'))
     markup.add(types.InlineKeyboardButton(f"Doesn't matter", callback_data="Doesnt_matter"))
     bot.send_message(message.chat.id, "Choose a categories:", reply_markup=markup)
@@ -89,32 +93,36 @@ def search_by_category(message):
         if fullmatch(r'\d{4}-\d{4}', user_years):
             start, end = map(int, user_years.split('-'))
             reader.add_many_years_to_search(start, end)
-            show_movies_after_search(message, reader)
+            show_movis(message, reader)
         else:
             pass # доработать !!!!!
 
-    def show_movies_after_search(message, reader):
-        titles_films = reader.search_movie_by_category_and_years()
-        show_movis(message, titles_films)
-
-
 def search_movie_by_title(message):
-    user_input: str = message.text.strip()
+    choices_titles: str = message.text.strip()
     bot.send_message(message.chat.id, f"Searching for movies...")
     reader = SearchMovieByTitle(**dbconfig)
+    reader.set_new_choice_titles(choices_titles)
     reader.connect()
-    titles_films = reader.fetch_title(user_input)
-    show_movis(message, titles_films)
+    show_movis(message, reader)
 
 
-def show_movis(message, titles_films):
-    if titles_films:
+def show_movis(message, reader):
+    titles_films = reader.fetch_title()
+    if not titles_films:
+        bot.send_message(message.chat.id, "Sorry, no movies found.")
+    else:
         markup = types.InlineKeyboardMarkup()
         for id, title in titles_films:
             markup.add(types.InlineKeyboardButton(f'{title}', callback_data=f'film_id: {id}'))
         bot.send_message(message.chat.id, "Choose a movie:", reply_markup=markup)
-    else:
-        bot.send_message(message.chat.id, "Sorry, no movies found.")
+        if  titles_films == reader.limit:
+            markup.add(types.InlineKeyboardButton(f'...search more', callback_data=f'...search more'))
+
+            @bot.callback_query_handler(func=lambda call: call.data =="..search more")
+            def search_more(callback):
+                reader.change_offset()
+                show_movis(message, reader)
+
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("film_id: "))
@@ -136,10 +144,10 @@ def search_popular_search(message):
     show_movis(message, titles_films)
 
 
-# def create_new_user(name, surname):
-#     with DatabaseManager() as db_manager:
-#         user_manager = UserManager(db_manager)
-#         user_manager.add_user(name, surname)
+def create_new_user(name, surname):
+    with DatabaseManager() as db_manager:
+        user_manager = UserManager(db_manager)
+        user_manager.add_user(name, surname)
 
 
 # Error adding user: (sqlite3.OperationalError) no such table: users

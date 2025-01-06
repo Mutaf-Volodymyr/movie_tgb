@@ -33,7 +33,13 @@ class SearchMovieByCategory(MySQLReader):
     def add_many_years_to_search(self, start, end):
         self.choices_years.update(range(start, end+1))
 
-    def search_movie_by_category_and_years(self):
+    def reset_obj(self):
+        self.choices_categories = dict()
+        self.choices_years = set()
+        self.limit = 10
+        self.offset = 0
+
+    def fetch_title(self):
         try:
             metadata = MetaData()
 
@@ -45,7 +51,7 @@ class SearchMovieByCategory(MySQLReader):
                 film.join(film_category, film.c.film_id == film_category.c.film_id))\
                 .where(and_(
                     film_category.c.category_id.in_(self.choices_categories.keys()),
-                    film.c.release_year.in_(self.choices_years))).limit(10)
+                    film.c.release_year.in_(self.choices_years))).limit(self.limit).offset(self.offset)
 
             with self.engine.connect() as connection:
                 results = connection.execute(query)

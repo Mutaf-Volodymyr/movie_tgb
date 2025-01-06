@@ -5,6 +5,10 @@ class MySQLReader:
     def __init__(self, *, user, password, host, database):
         self.db_url = f'mysql+pymysql://{user}:{password}@{host}:3306/{database}'
         self.engine = None
+
+        self.limit = 10
+        self.offset = 0
+
         self.film_table = 'film'
         self.category_table = 'category'
         self.film_category_table = 'film_category'
@@ -58,6 +62,9 @@ class MySQLReader:
 
         except Exception as e:
             print(f"Error reading data: {e}")
+
+    def change_offset(self):
+        self.offset += self.limit
 
 
     # def fetch_some_columns(self, table_name:str, columns:list[str]):
