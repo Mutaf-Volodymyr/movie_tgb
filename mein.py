@@ -5,17 +5,18 @@ import dotenv
 from pathlib import Path
 from sarch_moduls.search_movie_by_title import SearchMovieByTitle
 from sarch_moduls.show_popular_movie import ShowPopularMovie, GetPopularMovie
+from write_moduls.write_new_user import UserManager
+from write_moduls.sqllite_conection import DatabaseManager
+
 
 dotenv.load_dotenv(Path('.env'))
 bot = telebot.TeleBot(os.environ.get('token'))
 
-dotenv.load_dotenv(Path('../.env'))
+dotenv.load_dotenv(Path('.env'))
 dbconfig = {'host': os.environ.get('host'),
             'user': os.environ.get('user'),
             'password': os.environ.get('password'),
             'database': os.environ.get('database')}
-
-SQLITE_URL = 'sqlite:///../my_database.db'
 
 
 @bot.message_handler(commands=['start'])
@@ -25,6 +26,8 @@ def start(message):
     markup.add(types.InlineKeyboardButton('Search by category', callback_data='search_by_category'))
     markup.add(types.InlineKeyboardButton('Show popular movies', callback_data='show_popular'))
     user_name = message.from_user.first_name
+    user_surname = message.from_user.last_name
+    create_new_user(user_name, user_surname)
     bot.send_message(message.chat.id, f"Hello {user_name}, welcome! Please choose an option:", reply_markup=markup)
 
 
@@ -83,6 +86,16 @@ def search_popular_search(message):
     reader.connect()
     titles_films = reader.get_some_films(id_list)
     show_movis(message, titles_films)
+
+
+def create_new_user(name, surname):
+    with DatabaseManager() as db_manager:
+        user_manager = UserManager(db_manager)
+        user_manager.add_user(name, surname)
+# Error adding user: (sqlite3.OperationalError) no such table: users
+# [SQL: INSERT INTO users (name, surname) VALUES (?, ?)]
+# [parameters: ('Владимир', 'Мутаф')]
+
 
 
 if __name__ == '__main__':

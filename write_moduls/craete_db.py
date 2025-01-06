@@ -4,20 +4,24 @@ def create_db_users():
     with sqlite3.connect('users.db') as conn:
         cur = conn.cursor()
         cur.execute('''CREATE TABLE IF NOT EXISTS users (
-                    `id` int auto_increment primary key,
-                    `name` varchar(20),
-                    `surname` varchar(20), 
-                    `craeted_at` timestamp
-                    )''')
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        surname TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uix_name_surname UNIQUE (name, surname)
+                        )''')
         conn.commit()
 
+        cur.execute('PRAGMA foreign_keys = ON')
+
         cur.execute('''CREATE TABLE IF NOT EXISTS searches (
-                    `id` int auto_increment primary key,
-                    `user_id` int not null,
-                    `film_id` int not null,
-                    `craeted_at` timestamp,
-                    foreign key (user_id) references users(id)
-                    )''')
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        film_id INTEGER NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                        )''')
+        conn.commit()
 
 
 
