@@ -20,18 +20,25 @@ class SearchMovieByCategory(MySQLReader):
             print(f"Error reading data from table '{self.film_table}': {e}")
             return []
 
-    def add_new_category_to_search(self, id, category):
-        self.choices_categories[id] = category
+    def add_or_del_new_category_to_search(self, id, category):
+        if id not in self.choices_categories:
+            self.choices_categories[id] = category
+        elif id in self.choices_categories:
+            del self.choices_categories[id]
 
     def add_new_year_to_search(self, year:int):
         self.choices_years.add(year)
 
     def add_all_category_to_search(self):
-        for id, category in self.get_all_category():
-            self.add_new_category_to_search(int(id), category)
+        self.choices_categories = dict(self.get_all_category())
+
 
     def add_many_years_to_search(self, start, end):
         self.choices_years.update(range(start, end+1))
+
+
+    def add_one_year_to_search(self, year):
+        self.choices_years.add(year)
 
     def reset_obj(self):
         self.choices_categories = dict()
