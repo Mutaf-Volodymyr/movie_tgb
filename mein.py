@@ -7,6 +7,7 @@ from re import findall
 from sarch_moduls.search_movie_by_title import SearchMovieByTitle
 from sarch_moduls.show_popular_movie import ShowPopularMovie, GetPopularMovie
 from sarch_moduls.search_movie_by_category import SearchMovieByCategory
+from sarch_moduls.search_actors import SearchMovieByActors
 from write_moduls.write_new_user import UserManager
 from write_moduls.sqllite_conection import DatabaseManager
 
@@ -28,6 +29,7 @@ def start(message):
     buttons = [
         types.KeyboardButton('Search by title'),
         types.KeyboardButton('Search by category and years'),
+        types.KeyboardButton('Search by actors'),
         types.KeyboardButton('Show popular movies')
     ]
     markup.row(*buttons[:2])
@@ -40,7 +42,8 @@ def start(message):
 
 
 @bot.message_handler(
-    func=lambda message: message.text in ['Search by title', 'Search by category and years', 'Show popular movies'])
+    func=lambda message: message.text in ['Search by title', 'Search by category and years', 'Show popular movies',
+                                          'Search by actors'])
 def handle_buttons(message):
     match message.text:
         case 'Search by category and years':
@@ -50,13 +53,41 @@ def handle_buttons(message):
             bot.send_message(message.chat.id, "<b>Please enter the movie title you want to search for:</b>",
                              parse_mode='html')
             bot.register_next_step_handler(message, search_movie_by_title)
+        case 'Search by actors':
+            bot.send_message(message.chat.id, "<b>Please enter the name of actors:</b>",
+                             parse_mode='html')
+            bot.register_next_step_handler(message, search_actors)
         case 'Show popular movies':
             bot.register_next_step_handler(message, search_popular_search)
 
 
+def search_actors(message):
+    choices_actors: str = message.text.strip()
+    reader = SearchMovieByActors(**dbconfig)
+    reader.connect()
+    reader.set_new_choice_actors(choices_actors)
+    actors = reader.fetch_actors()
+    if actors:
+        markup = types.InlineKeyboardMarkup()
+        for id, full_name_actors in actors:
+            markup.add(types.InlineKeyboardButton(f'{full_name_actors}', callback_data=f'actor_id: {id}'))
+        bot.send_message(message.chat.id, "Choose a actors to get all films with this actors:", reply_markup=markup)
+    else:
+        pass
+
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("actor_id: "))
+    def get_actor(callback):
+        actor_id = int(callback.data[10:])
+
+        reader.set_actor_id(actor_id)
+        show_movis(message, reader)
+
+
 def search_by_category(message):
-    reader = SearchMovieByCategory(**dbconfig)  # BUG IS HEAR <----------------------
-    reader.reset_obj()
+    for_delete_message = None
+    reader = SearchMovieByCategory(**dbconfig)
+    # reader.reset_obj()
     reader.connect()
     categories = reader.get_all_category()
     markup = types.InlineKeyboardMarkup()
@@ -75,11 +106,14 @@ def search_by_category(message):
     @bot.callback_query_handler(
         func=lambda call: call.data.startswith("category_id: ") or call.data in ('Finish_selection', "Doesnt_matter"))
     def add_chose(callback):
-        end_message = "<b>Write the year diapason.</b>\n\tFor example: 1995 - 1999\n<b>Or one yaer</b>\n\tFor example: 1995"
+        nonlocal for_delete_message
+        end_message = "<b>Write the year diapason:</b>\n    For example: 1995 - 1999\n<b>Or one year:</b>\n    For example: 1995"
         if callback.data.startswith("category_id: "):
             id, category = callback.data.split(": ")[1].split('@')
             reader.add_or_del_new_category_to_search(int(id), category)
-            bot.send_message(message.chat.id, f"Categories selected: {', '.join(reader.choices_categories.values())}")
+            if for_delete_message:
+                bot.delete_message(message.chat.id, for_delete_message.message_id)
+            for_delete_message = bot.send_message(message.chat.id, f"Categories selected: {', '.join(reader.choices_categories.values())}")
         elif callback.data == "Doesnt_matter":
             reader.add_all_category_to_search()
             bot.send_message(callback.message.chat.id, end_message, parse_mode='html')
@@ -102,6 +136,7 @@ def search_by_category(message):
         except ValueError as e:
             bot.send_message(message.chat.id, "Wrong input. Try agen", parse_mode='html')
             bot.register_next_step_handler(message, add_years)
+
 
 def search_movie_by_title(message):
     choices_titles: str = message.text.strip()
@@ -143,7 +178,7 @@ def get_info_about_movie(callback):
 
 
 def search_popular_search(message):  # BUG IS HEAR <----------------------
-    reader = GetPopularMovie(SQLITE_URL)
+    reader = GetPopularMovie()
     reader.connect()
     id_list = reader.search_most_popular_film()
     reader = ShowPopularMovie(**dbconfig)
@@ -152,7 +187,7 @@ def search_popular_search(message):  # BUG IS HEAR <----------------------
     show_movis(message, titles_films)
 
 
-def create_new_user(name, surname):  # BUG IS HEAR <----------------------
+def create_new_user(name, surname):
     with DatabaseManager() as db_manager:
         user_manager = UserManager(db_manager)
         user_manager.add_user(name, surname)
