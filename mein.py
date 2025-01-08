@@ -4,20 +4,12 @@ import os
 import dotenv
 from pathlib import Path
 from re import findall
-from sarch_moduls.search_movie_by_title import SearchMovieByTitle
-from sarch_moduls.show_popular_movie import ShowPopularMovie, GetPopularMovie
-from sarch_moduls.search_movie_by_category import SearchMovieByCategory
-from sarch_moduls.search_actors import SearchMovieByActors
-from write_moduls.write_new_user import UserManager
-from write_moduls.sqllite_conection import DatabaseManager
+from db_sakila_manager import SearchMovieByTitle, engine_sakila, SearchMovieByCategory, SearchMovieByActors
+from db_sqlite_manager import engine_sqlite, DatabaseSQLiteManager, UserManager
 
 dotenv.load_dotenv(Path('.env'))
 bot = telebot.TeleBot(os.environ.get('token'))
 
-dbconfig = {'host': os.environ.get('host'),
-            'user': os.environ.get('user'),
-            'password': os.environ.get('password'),
-            'database': os.environ.get('database')}
 
 
 @bot.message_handler(commands=['start'])
@@ -63,8 +55,7 @@ def handle_buttons(message):
 
 def search_actors(message):
     choices_actors: str = message.text.strip()
-    reader = SearchMovieByActors(**dbconfig)
-    reader.connect()
+    reader = SearchMovieByActors(engine_sakila)
     reader.set_new_choice_actors(choices_actors)
     actors = reader.fetch_actors()
     if actors:
@@ -86,9 +77,8 @@ def search_actors(message):
 
 def search_by_category(message):
     for_delete_message = None
-    reader = SearchMovieByCategory(**dbconfig)
+    reader = SearchMovieByCategory(engine_sakila)
     # reader.reset_obj()
-    reader.connect()
     categories = reader.get_all_category()
     markup = types.InlineKeyboardMarkup()
     row = []
@@ -141,9 +131,8 @@ def search_by_category(message):
 def search_movie_by_title(message):
     choices_titles: str = message.text.strip()
     bot.send_message(message.chat.id, f"Searching for movies...")
-    reader = SearchMovieByTitle(**dbconfig)
+    reader = SearchMovieByTitle(engine_sakila)
     reader.set_new_choice_titles(choices_titles)
-    reader.connect()
     show_movis(message, reader)
 
 
@@ -171,26 +160,30 @@ def show_movis(message, reader):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("film_id: "))
 def get_info_about_movie(callback):
     movie_id = int(callback.data[9:])
-    reader = SearchMovieByTitle(**dbconfig)
-    reader.connect()
-    info = reader.show_info_about_film(movie_id)
+    reader = SearchMovieByTitle(engine_sakila)
+
+    info = reader.get_info_about_film(movie_id)
     bot.send_message(callback.message.chat.id, info, parse_mode='html')
 
 
 def search_popular_search(message):  # BUG IS HEAR <----------------------
-    reader = GetPopularMovie()
-    reader.connect()
-    id_list = reader.search_most_popular_film()
-    reader = ShowPopularMovie(**dbconfig)
-    reader.connect()
-    titles_films = reader.get_some_films(id_list)
-    show_movis(message, titles_films)
+    pass
+#     reader = GetPopularMovie()
+#     reader.connect()
+#     id_list = reader.search_most_popular_film()
+#     reader = ShowPopularMovie(**dbconfig)
+#     reader.connect()
+#     titles_films = reader.get_some_films(id_list)
+#     show_movis(message, titles_films)
 
 
 def create_new_user(name, surname):
-    with DatabaseManager() as db_manager:
+    with DatabaseSQLiteManager(engine_sqlite) as db_manager:
         user_manager = UserManager(db_manager)
         user_manager.add_user(name, surname)
+
+
+
 
 
 # Error adding user: (sqlite3.OperationalError) no such table: users

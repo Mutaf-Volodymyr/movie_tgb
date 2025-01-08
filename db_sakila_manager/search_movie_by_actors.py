@@ -1,18 +1,18 @@
 from sqlalchemy import MetaData, Table, select, func
-from sarch_moduls.sakila_conection import MySQLReader
+from .sakila_conection import SakilaReader
 
 
-class SearchMovieByActors(MySQLReader):
-    def __init__(self, *, user, password, host, database):
-        super().__init__(user=user, password=password, host=host, database=database)
-        self.choice_actors = None
-        self.actor_id = None
+class SearchMovieByActors(SakilaReader):
+    def __init__(self, engine):
+        super().__init__(engine)
+        self._choice_actors = None
+        self._actor_id = None
 
     def set_new_choice_actors(self, new_actors: str):
-        self.choice_actors = new_actors.upper()
+        self._choice_actors = new_actors.upper()
 
     def set_actor_id(self, actor_id: int):
-        self.actor_id = actor_id
+        self._actor_id = actor_id
 
     def fetch_actors(self):
         try:
@@ -21,7 +21,7 @@ class SearchMovieByActors(MySQLReader):
             full_name = func.concat(table.c.first_name, ' ', table.c.last_name)
             query = (
                 select(table.c.actor_id, full_name.label("full_name"))
-                    .where(full_name.ilike(f"%{self.choice_actors}%"))
+                    .where(full_name.ilike(f"%{self._choice_actors}%"))
                     .limit(self.limit)
                     .offset(self.offset)
             )
@@ -45,7 +45,7 @@ class SearchMovieByActors(MySQLReader):
                 .select_from(
                     film_actor_table.join(film_table, film_actor_table.c.film_id == film_table.c.film_id)
                 )
-                .where(film_actor_table.c.actor_id == self.actor_id).limit(self.limit).offset(self.offset)
+                .where(film_actor_table.c.actor_id == self._actor_id).limit(self.limit).offset(self.offset)
             )
 
             with self.engine.connect() as connection:

@@ -1,7 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import declarative_base
-from write_moduls.sqllite_conection import DatabaseManager
 
 Base = declarative_base()
 
@@ -17,6 +16,7 @@ class User(Base):
     def __repr__(self):
         return f"<User(id={self.id}, name='{self.name}', surname='{self.surname}', created_at='{self.created_at}')>"
 
+
 class UserManager:
     def __init__(self, db_manager):
         self.db_manager = db_manager
@@ -24,10 +24,10 @@ class UserManager:
     def add_user(self, name, surname):
         try:
             new_user = User(name=name, surname=surname)
-            self.db_manager.session.add(new_user)
-            self.db_manager.session.commit()
+            self.db_manager.add(new_user)
+            self.db_manager.commit()
         except Exception as e:
-            self.db_manager.session.rollback()
+            self.db_manager.rollback()
             print(f"Error adding user: {e}")
 
     def get_all_users(self):
@@ -38,13 +38,3 @@ class UserManager:
             print(f"Error getting users: {e}")
             return []
 
-
-
-
-# def create_new_user(name, surname):
-#     with DatabaseManager() as db_manager:
-#         user_manager = UserManager(db_manager)
-#         user_manager.add_user(name, surname)
-#
-#
-# create_new_user('Владимир', 'Мутаф')

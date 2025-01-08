@@ -1,10 +1,10 @@
 from sqlalchemy import MetaData, Table, select, and_
-from sarch_moduls.sakila_conection import MySQLReader
+from .sakila_conection import SakilaReader
 
 
-class SearchMovieByCategory(MySQLReader):
-    def __init__(self, *, user, password, host, database):
-        super().__init__(user=user, password=password, host=host, database=database)
+class SearchMovieByCategory(SakilaReader):
+    def __init__(self, engine):
+        super().__init__(engine)
         self.choices_categories = dict()
         self.choices_years = set()
 

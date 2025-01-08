@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, MetaData, Table, select, func, desc
-from sarch_moduls.sakila_conection import MySQLReader
+from db_sakila_manager.sakila_conection import MySQLReader
 
 
 

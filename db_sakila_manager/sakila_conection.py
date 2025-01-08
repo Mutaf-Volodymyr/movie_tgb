@@ -1,11 +1,9 @@
-from sqlalchemy import create_engine, MetaData, Table, select, func
+from sqlalchemy import MetaData, Table, select, func
 
 
-class MySQLReader:
-    def __init__(self, *, user, password, host, database):
-        self.db_url = f'mysql+pymysql://{user}:{password}@{host}:3306/{database}'
-        self.engine = None
-
+class SakilaReader:
+    def __init__(self, engine):
+        self.engine = engine
         self.limit = 10
         self.offset = 0
 
@@ -15,14 +13,10 @@ class MySQLReader:
         self.actor_table = 'actor'
         self.film_actor_table = 'film_actor'
 
-    def connect(self):
-        try:
-            self.engine = create_engine(self.db_url)
-        except Exception as e:
-            print(f"Error connecting to MySQL: {e}")
+    def change_offset(self):
+        self.offset += self.limit
 
-
-    def show_info_about_film(self, id):
+    def get_info_about_film(self, film_id):
         try:
             metadata = MetaData()
 
@@ -36,15 +30,15 @@ class MySQLReader:
                            film.c.description,
                            film.c.rating,
                            film.c.release_year,
-                           ).where(film.c.film_id == id)
+                           ).where(film.c.film_id == film_id)
 
             query_category = select(category.c.name)\
                             .select_from(category.join(film_category, film_category.c.category_id == category.c.category_id))\
-                            .where(film_category.c.film_id == id)
+                            .where(film_category.c.film_id == film_id)
 
             query_actors = select(func.concat(actor.c.last_name, ' ', actor.c.first_name))\
                             .select_from(actor.join(film_actor, actor.c.actor_id == film_actor.c.actor_id))\
-                            .where(film_actor.c.film_id == id)
+                            .where(film_actor.c.film_id == film_id)
 
 
             with self.engine.connect() as connection:
@@ -63,21 +57,7 @@ class MySQLReader:
         except Exception as e:
             print(f"Error reading data: {e}")
 
-    def change_offset(self):
-        self.offset += self.limit
 
 
-    # def fetch_some_columns(self, table_name:str, columns:list[str]):
-    #     try:
-    #         metadata = MetaData()
-    #         table = Table(table_name, metadata, autoload_with=self.engine)
-    #         query = select(*[table.c[column] for column in columns])
-    #
-    #         with self.engine.connect() as connection:
-    #             results = connection.execute(query)
-    #             return results.fetchall()
-    #     except Exception as e:
-    #         print(f"Error reading data from table '{table_name}': {e}")
-    #         return []
 
 

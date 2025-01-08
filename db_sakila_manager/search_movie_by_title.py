@@ -1,9 +1,9 @@
 from sqlalchemy import MetaData, Table, select
-from sarch_moduls.sakila_conection import MySQLReader
+from .sakila_conection import SakilaReader
 
-class SearchMovieByTitle(MySQLReader):
-    def __init__(self, *, user, password, host, database):
-        super().__init__(user=user, password=password, host=host, database=database)
+class SearchMovieByTitle(SakilaReader):
+    def __init__(self, engine):
+        super().__init__(engine)
         self.choice_titles = None
 
     def set_new_choice_titles(self, new_title: str):
@@ -16,7 +16,6 @@ class SearchMovieByTitle(MySQLReader):
             query = select(table.c.film_id, table.c.title)\
                 .where(table.c.title.ilike(f"%{self.choice_titles}%"))\
                 .limit(self.limit).offset(self.offset)
-
 
             with self.engine.connect() as connection:
                 results = connection.execute(query)
