@@ -61,3 +61,44 @@ class SakilaReader:
 
 
 
+
+
+           # metadata = MetaData()
+           #
+           #  film = Table(self.film_table, metadata, autoload_with=self.engine)
+           #  film_category = Table(self.film_category_table, metadata, autoload_with=self.engine)
+           #  category = Table(self.category_table, metadata, autoload_with=self.engine)
+           #  film_actor = Table(self.film_actor_table, metadata, autoload_with=self.engine)
+           #  actor = Table(self.actor_table, metadata, autoload_with=self.engine)
+
+            # select f.title, f.description, f.release_year, f.rating, c.name, concat(a.first_name, ' ', a.last_name) as actor
+            # from (
+            #     select film_id ,title, `description`, release_year, rating
+            #     from film
+            #     where film_id = 1) as f
+            # inner join film_category as fc
+            #     on f.film_id = fc.film_id
+            # inner join sakila.category c
+            # on fc.category_id = c.category_id
+            # inner join film_actor as fa
+            # on f.film_id = fa.film_id
+            # inner join actor as a
+            # on fa.actor_id = a.actor_id
+
+            # query = (
+            #     select(
+            #         film.c.title,
+            #         film.c.description,
+            #         film.c.release_year,
+            #         film.c.rating,
+            #         category.c.name,
+            #         func.concat(actor.c.first_name, ' ', actor.c.last_name).label('actor'),
+            #     )
+            #     .select_from(
+            #         film.join(film_category, film.c.film_id == film_category.c.film_id)
+            #         .join(category, film_category.c.category_id == category.c.category_id)
+            #         .join(film_actor, film.c.film_id == film_actor.c.film_id)
+            #         .join(actor, film_actor.c.actor_id == actor.c.actor_id)
+            #     )
+            #     .where(film.c.film_id == film_id))
+

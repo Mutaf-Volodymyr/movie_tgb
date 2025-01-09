@@ -1,7 +1,7 @@
 import sqlite3
 
 def create_db_users():
-    with sqlite3.connect('users.db') as conn:
+    with sqlite3.connect('../DB_for_tgb.db') as conn:
         cur = conn.cursor()
         cur.execute('''CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,

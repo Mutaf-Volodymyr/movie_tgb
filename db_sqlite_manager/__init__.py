@@ -5,7 +5,7 @@ from .write_new_user import UserManager, User
 
 try:
     engine_sqlite = create_engine(
-        url=f'sqlite:///../users.db',
+        url=f'sqlite:///../DB_for_tgb.db',
         echo=True, # For testing
         pool_size=5,
         max_overflow=10
