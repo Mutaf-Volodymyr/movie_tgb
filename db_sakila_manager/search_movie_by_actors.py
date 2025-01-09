@@ -30,7 +30,7 @@ class SearchMovieByActors(SakilaReader):
                 results = connection.execute(query)
                 return results.fetchall()
         except Exception as e:
-            print(f"Error reading data from table '{self.film_table}': {e}")
+            print(f"Error reading data from table '{self.actor_table}': {e}")
             return []
 
     def fetch_title(self):
@@ -55,3 +55,21 @@ class SearchMovieByActors(SakilaReader):
         except Exception as e:
             print(f"Error reading data from join('{self.film_table}, {self.film_actor_table})': {e}")
             return []
+
+    def get_popular(self, ids):
+        try:
+            metadata = MetaData()
+
+            table = Table(self.actor_table, metadata, autoload_with=self.engine)
+            full_name = func.concat(table.c.first_name, ' ', table.c.last_name)
+            query = (
+                select(full_name.label("full_name"))
+                .where(table.c.actor_id.in_(ids))
+            )
+
+            with self.engine.connect() as connection:
+                results = connection.execute(query)
+                return ', '.join([i[0] for i in results.fetchall()])
+        except Exception as e:
+            print(f"Error reading data from table '{self.actor_table}': {e}")
+            return 'Sorry, there are no popular actors 😥😥😥😥'

@@ -12,15 +12,3 @@ class DatabaseSQLiteManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()
-
-
-
-
-# https://github.com/pareikoVladislav/190224_pydantic_sqlalchemy/blob/main/alchemy_queries/models.py
-
-
-
-
-
-
-

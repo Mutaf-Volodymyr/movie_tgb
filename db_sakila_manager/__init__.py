@@ -9,6 +9,7 @@ from .search_movie_by_category import SearchMovieByCategory
 from .search_movie_by_actors import SearchMovieByActors
 
 
+
 dotenv.load_dotenv(Path('.env'))
 
 dbconfig = {'host': os.environ.get('host'),

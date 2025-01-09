@@ -1,4 +1,4 @@
 .env
-users.db
+DB_for_tgb.db
 identifier.sqlite
 __pycache__

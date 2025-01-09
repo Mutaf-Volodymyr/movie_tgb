@@ -24,5 +24,18 @@ class SearchMovieByTitle(SakilaReader):
             print(f"Error reading data from table '{self.film_table}': {e}")
             return []
 
+    def get_popular(self, ids):
+        try:
+            metadata = MetaData()
+            table = Table(self.film_table, metadata, autoload_with=self.engine)
+            query = (
+                select(table.c.title)
+                .where(table.c.film_id.in_(ids)))
 
+            with self.engine.connect() as connection:
+                results = connection.execute(query)
+                return ', '.join([i[0] for i in results.fetchall()])
+        except Exception as e:
+            print(f"Error reading data from table '{self.film_table}': {e}")
+            return 'Sorry, there are no popular films 😥😥😥😥'
 

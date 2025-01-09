@@ -1,28 +1,20 @@
-import telebot
 from telebot import types
-import os
-import dotenv
-from pathlib import Path
 from re import findall
 from db_sakila_manager import SearchMovieByTitle, engine_sakila, SearchMovieByCategory, SearchMovieByActors
-from db_sqlite_manager import engine_sqlite, DatabaseSQLiteManager, UserManager
-
-dotenv.load_dotenv(Path('.env'))
-bot = telebot.TeleBot(os.environ.get('token'))
+from tgm_models import bot, create_new_user, db_counter_one, db_counter_many, show_movis, get_popular
 
 
 
 @bot.message_handler(commands=['start'])
 def start(message):
     user_name = message.from_user.first_name
-    user_surname = message.from_user.last_name
-    create_new_user(user_name, user_surname)
+    create_new_user(message)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = [
         types.KeyboardButton('Search by title'),
         types.KeyboardButton('Search by category and years'),
         types.KeyboardButton('Search by actors'),
-        types.KeyboardButton('Show popular movies')
+        types.KeyboardButton('Show popular')
     ]
     markup.row(*buttons[:2])
     markup.row(*buttons[2:])
@@ -34,7 +26,7 @@ def start(message):
 
 
 @bot.message_handler(
-    func=lambda message: message.text in ['Search by title', 'Search by category and years', 'Show popular movies',
+    func=lambda message: message.text in ['Search by title', 'Search by category and years', 'Show popular',
                                           'Search by actors'])
 def handle_buttons(message):
     match message.text:
@@ -49,9 +41,30 @@ def handle_buttons(message):
             bot.send_message(message.chat.id, "<b>Please enter the name of actors:</b>",
                              parse_mode='html')
             bot.register_next_step_handler(message, search_actors)
-        case 'Show popular movies':
-            bot.register_next_step_handler(message, search_popular_search)
+        case 'Show popular':
+            show_popular(message)
 
+def show_popular(message):
+    markup = types.InlineKeyboardMarkup()
+    markup.row(
+        types.InlineKeyboardButton(f'actors', callback_data=f'popular_actors'),
+        types.InlineKeyboardButton(f'categories', callback_data=f'popular_categories'),
+        types.InlineKeyboardButton(f'film', callback_data=f'popular_films')
+    )
+    bot.send_message(message.chat.id, "Make a choice:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("popular_"))
+def popular_button(callback):
+    ids = get_popular(callback.data)
+    match callback.data:
+        case 'popular_actors':
+            reader_popular = SearchMovieByActors(engine_sakila)
+            bot.send_message(callback.message.chat.id, reader_popular.get_popular(ids))
+        case 'popular_categories':
+            reader_popular = SearchMovieByCategory(engine_sakila)
+        case 'popular_films':
+            reader_popular = SearchMovieByTitle(engine_sakila)
+    bot.send_message(callback.message.chat.id, reader_popular.get_popular(ids))
 
 def search_actors(message):
     choices_actors: str = message.text.strip()
@@ -70,7 +83,7 @@ def search_actors(message):
         func=lambda call: call.data.startswith("actor_id: "))
     def get_actor(callback):
         actor_id = int(callback.data[10:])
-
+        db_counter_one(actor_id, 'popular_actors')
         reader.set_actor_id(actor_id)
         show_movis(message, reader)
 
@@ -109,6 +122,7 @@ def search_by_category(message):
             bot.send_message(callback.message.chat.id, end_message, parse_mode='html')
             bot.register_next_step_handler(callback.message, add_years)
         elif callback.data == "Finish_selection":
+            db_counter_many(reader.get_choices_categories_id(), 'popular_categories')
             bot.send_message(callback.message.chat.id, end_message, parse_mode='html')
             bot.register_next_step_handler(callback.message, add_years)
 
@@ -136,59 +150,14 @@ def search_movie_by_title(message):
     show_movis(message, reader)
 
 
-def show_movis(message, reader):
-    titles_films = reader.fetch_title()
-    if not titles_films:
-        bot.send_message(message.chat.id, "Sorry, no movies found.")
-    else:
-        markup = types.InlineKeyboardMarkup()
-        for id, title in titles_films:
-            markup.add(types.InlineKeyboardButton(f'{title}', callback_data=f'film_id: {id}'))
-        bot.send_message(message.chat.id, "Choose a movie:", reply_markup=markup)
-
-        if len(titles_films) == reader.limit:
-            markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton(f'...search more', callback_data=f'search_more'))
-            bot.send_message(message.chat.id, "Try search next movie", reply_markup=markup)
-
-            @bot.callback_query_handler(func=lambda call: call.data == "search_more")
-            def search_more(callback):
-                reader.change_offset()
-                show_movis(message, reader)
-
-
 @bot.callback_query_handler(func=lambda call: call.data.startswith("film_id: "))
 def get_info_about_movie(callback):
     movie_id = int(callback.data[9:])
+    db_counter_one(movie_id, 'popular_films')
     reader = SearchMovieByTitle(engine_sakila)
 
     info = reader.get_info_about_film(movie_id)
     bot.send_message(callback.message.chat.id, info, parse_mode='html')
-
-
-def search_popular_search(message):  # BUG IS HEAR <----------------------
-    pass
-#     reader = GetPopularMovie()
-#     reader.connect()
-#     id_list = reader.search_most_popular_film()
-#     reader = ShowPopularMovie(**dbconfig)
-#     reader.connect()
-#     titles_films = reader.get_some_films(id_list)
-#     show_movis(message, titles_films)
-
-
-def create_new_user(name, surname):
-    with DatabaseSQLiteManager(engine_sqlite) as db_manager:
-        user_manager = UserManager(db_manager)
-        user_manager.add_user(name, surname)
-
-
-
-
-
-# Error adding user: (sqlite3.OperationalError) no such table: users
-# [SQL: INSERT INTO users (name, surname) VALUES (?, ?)]
-# [parameters: ('Владимир', 'Мутаф')]
 
 
 if __name__ == '__main__':

@@ -44,6 +44,9 @@ class SearchMovieByCategory(SakilaReader):
         self.limit = 10
         self.offset = 0
 
+    def get_choices_categories_id(self):
+        return self.choices_categories.keys()
+
     def fetch_title(self):
         try:
             metadata = MetaData()
@@ -64,3 +67,18 @@ class SearchMovieByCategory(SakilaReader):
         except Exception as e:
             print(f" Error reading data from table'{self.film_table}': {e}")
             return []
+
+    def get_popular(self, ids):
+        try:
+            metadata = MetaData()
+            table = Table(self.category_table, metadata, autoload_with=self.engine)
+            query = (
+                select(table.c.name)
+                .where(table.c.category_id.in_(ids)))
+
+            with self.engine.connect() as connection:
+                results = connection.execute(query)
+                return ', '.join([i[0] for i in results.fetchall()])
+        except Exception as e:
+            print(f"Error reading data from table '{self.category_table}': {e}")
+            return 'Sorry, there are no popular category 😥😥😥😥'
