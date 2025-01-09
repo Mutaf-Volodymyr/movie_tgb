@@ -34,7 +34,7 @@ class SearchMovieByTitle(SakilaReader):
 
             with self.engine.connect() as connection:
                 results = connection.execute(query)
-                return ', '.join([i[0] for i in results.fetchall()])
+                return 'FILMS:\n' + ', '.join([i[0] for i in results.fetchall()])
         except Exception as e:
             print(f"Error reading data from table '{self.film_table}': {e}")
             return 'Sorry, there are no popular films 😥😥😥😥'

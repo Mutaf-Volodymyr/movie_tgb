@@ -17,6 +17,7 @@ dbconfig = {'host': os.environ.get('host'),
             'password': os.environ.get('password'),
             'database': os.environ.get('database')}
 
+
 try:
     engine_sakila = create_engine(
         url=f'mysql+pymysql://{dbconfig['user']}:{dbconfig['password']}@{dbconfig['host']}:3306/{dbconfig['database']}',

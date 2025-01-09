@@ -1,7 +1,9 @@
 from telebot import types
 from .bot_init import bot
+from .write_function import db_counter_one
 from db_sqlite_manager import all_table
 from db_sqlite_manager import DatabaseSQLiteManager, engine_sqlite
+from db_sakila_manager import SearchMovieByTitle, engine_sakila
 
 
 def show_movis(message, reader):
@@ -33,3 +35,15 @@ def get_popular(table_name):
     with DatabaseSQLiteManager(engine_sqlite) as db_manager:
         record_ids = db_manager.query(model.id).order_by(model.counter.desc()).limit(5).all()
         return [record_id[0] for record_id in record_ids]
+
+
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("film_id: "))
+def get_info_about_movie(callback):
+    movie_id = int(callback.data[9:])
+    db_counter_one(movie_id, 'popular_films')
+    reader = SearchMovieByTitle(engine_sakila)
+
+    info = reader.get_info_about_film(movie_id)
+    bot.send_message(callback.message.chat.id, info, parse_mode='html')
