@@ -16,7 +16,8 @@ def search_actors(message):
             markup.add(types.InlineKeyboardButton(f'{full_name_actors}', callback_data=f'actor_id: {id}'))
         bot.send_message(message.chat.id, "Choose a actors to get all films with this actors:", reply_markup=markup)
     else:
-        pass
+        bot.send_message(message.chat.id, "Nothing found matching your request. Please enter a new request:")
+        bot.register_next_step_handler(message, search_actors)
 
     @bot.callback_query_handler(
         func=lambda call: call.data.startswith("actor_id: "))

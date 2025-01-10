@@ -6,10 +6,11 @@ from .write_function import db_counter_many
 from .show_function import show_movis
 
 
+
 def search_by_category(message):
     for_delete_message = None
+    global reader
     reader = SearchMovieByCategory(engine_sakila)
-    # reader.reset_obj()
     categories = reader.get_all_category()
     markup = types.InlineKeyboardMarkup()
     row = []
@@ -20,15 +21,16 @@ def search_by_category(message):
             row = []
     if row:
         markup.row(*row)
-    markup.add(types.InlineKeyboardButton(f'Finish selection', callback_data='Finish_selection'))
     markup.add(types.InlineKeyboardButton(f"Doesn't matter", callback_data="Doesnt_matter"))
+    markup.add(types.InlineKeyboardButton(f"Clean all categories", callback_data="Clean all categories"))
+    markup.add(types.InlineKeyboardButton(f'Finish selection', callback_data='Finish_selection'))
     bot.send_message(message.chat.id, "Choose a categories:", reply_markup=markup)
 
     @bot.callback_query_handler(
-        func=lambda call: call.data.startswith("category_id: ") or call.data in ('Finish_selection', "Doesnt_matter"))
+        func=lambda call: call.data.startswith("category_id: ") or call.data in ('Finish_selection', "Doesnt_matter", "Clean all categories"))
     def add_chose(callback):
         nonlocal for_delete_message
-        end_message = "<b>Write the year diapason:</b>\n    For example: 1995 - 1999\n<b>Or one year:</b>\n    For example: 1995"
+        end_message = "<b>Write the year diapason:</b>\nFor example: 1995 - 1999\n<b>Or one year:</b>\nFor example: 1995"
         if callback.data.startswith("category_id: "):
             id, category = callback.data.split(": ")[1].split('@')
             reader.add_or_del_new_category_to_search(int(id), category)
@@ -36,14 +38,21 @@ def search_by_category(message):
                 bot.delete_message(message.chat.id, for_delete_message.message_id)
             for_delete_message = bot.send_message(message.chat.id,
                                                   f"Categories selected: {', '.join(reader.choices_categories.values())}")
+        elif callback.data == "Clean all categories":
+            reader.reset_obj()
+            bot.delete_message(message.chat.id, for_delete_message.message_id)
+            for_delete_message = bot.send_message(message.chat.id, "Categories is cleaning...")
         elif callback.data == "Doesnt_matter":
             reader.add_all_category_to_search()
             bot.send_message(callback.message.chat.id, end_message, parse_mode='html')
             bot.register_next_step_handler(callback.message, add_years)
         elif callback.data == "Finish_selection":
-            db_counter_many(reader.get_choices_categories_id(), 'popular_categories')
-            bot.send_message(callback.message.chat.id, end_message, parse_mode='html')
-            bot.register_next_step_handler(callback.message, add_years)
+            if reader.choices_categories:
+                db_counter_many(reader.get_choices_categories_id(), 'popular_categories')
+                bot.send_message(callback.message.chat.id, end_message, parse_mode='html')
+                bot.register_next_step_handler(callback.message, add_years)
+            else:
+                for_delete_message = bot.send_message(callback.message.chat.id, 'Select at least one category', parse_mode='html')
 
     def add_years(message):
         user_years: str = message.text.strip()
@@ -56,6 +65,8 @@ def search_by_category(message):
             else:
                 raise ValueError
             show_movis(message, reader)
+            reader.reset_obj()
+
         except ValueError as e:
             bot.send_message(message.chat.id, "Wrong input. Try agen", parse_mode='html')
-            bot.register_next_step_handler(message, add_years)
+            search_by_category(message)

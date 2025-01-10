@@ -1,31 +1,24 @@
-Баги:
-1) при повторном вызове поиска по категориям состояние объекта сохраняется. Почему???
-    def search_by_category
-    reader.reset_obj() - не помогает 
-    nonlocal reader во вн. функциях - не помогает
-2) # УСТРАНЕНО (через nonlocal - мне не нравиться, но работает) при выборе категорий, нужно как-то сделать, что бы сообщение о набранных категориях обновлялось, а не добавлялось
-3) # УСТРАНЕНО по как-то причине def create_new_user не работает в mein.py, хотя в write_new_user.py - работает (pdb / set_trace) 
-4) # УСТРАНЕНО - не отображается кнопка "...search more" в def show_movis в mein.py. Функционирование проверить не удается 
-5) SHOW POPULAR выдает ошибки если база POPULAR пустая
+### MOVIE SEARCH TELEGRAM BOT
+#### Creat by Volodymyr Mutaf --> https://www.linkedin.com/in/volodymyr-mutaf-6566a431a/
 
+**Local launch:**:
+1. Make a local copy of the repository. In the console, select the directory where the project repository will be cloned.\
+Enter the command in the console -> `git clone git@github.com:Mutaf-Volodymyr/movie_tgb.git`
+2. You must have Python 3.12
+3. Create environment `python3 -m venv .venv` and `source .venv/bin/activate`
 
-Планы:
-1) # РЕАЛИЗОВАНО рефакторинг mein.py. Как-то решить вопрос с циклическими импортами 
-2) # РЕАЛИЗОВАНО добавить возможность по второму клику убирать категории
-3) # РЕАЛИЗОВАНО добавить возможность добавлять конкретный года при поиске по категория-год
-4) # РЕАЛИЗОВАНО добавить функционал поиска по актеру
-5) # РЕАЛИЗОВАНО добавить функционал поиска по "популярным фильмам"
-6) # РЕАЛИЗОВАНО добавить функционал поиска по "популярным категориям"
-7) # РЕАЛИЗОВАНО добавить функционал поиска по "популярным актерам"
-8) # РЕАЛИЗОВАНО доработать add_years в mein.py если введенные данные неправильные
-9) # РЕАЛИЗОВАНО усовершенствовать принятие диапазона лет
-10) # НЕ УСПЕЮ ДА И РАБОТАЕТ +- БЫСТРО сделать асинхронное обновление базы [users.db](users.db) если хватит времени и/или мозгов
-11) Прописать README
-12) переделать запрос в get_info_about_film - SakilaReader
-13) узнать почему если в `main.py` убрать `import db_sakila_manager`, то все летит к чертям
+4. You must have next moduls  
+   * `SQLAlchemy==2.0.36`
+   * `python-dotenv==1.0.1`
+   * `telebot==0.0.5`
+   For it enter the command in the console -> `pip install -r requirements.txt`
+5. Create a `.env` file in the root of your project, for example:
+   ```
+    host=***********************
+    user=***********************
+    password=*******************
+    database=*******************
+    token=**********************
+   ```
 
-
-
-pip freeze > requirements.txt
-pip install -r requirements.txt
-
+> Attention. Before using SHOW POPULAR, go through all other scenarios, because the application complains, on an empty base.
