@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, UniqueConstraint
 from sqlalchemy.orm import declarative_base
 
+
 Base = declarative_base()
 
 
@@ -22,6 +23,7 @@ class User(Base):
         return f"<User(id={self.id}, name='{self.name}', surname='{self.surname}', created_at='{self.created_at}')>"
 
 
+
 class PopularActors(Base):
     __tablename__ = 'popular_actors'
 
@@ -29,7 +31,7 @@ class PopularActors(Base):
     counter = Column(Integer, nullable=False)
 
     def __repr__(self):
-        return f"<PopularActors(id={self.id}, actor_id='{self.actor_id}, counter='{self.counter}'"
+        return f"<{self.__tablename__}(id={self.id}, counter='{self.counter}'"
 
 
 class PopularFilms(Base):
@@ -39,7 +41,7 @@ class PopularFilms(Base):
     counter = Column(Integer, nullable=False)
 
     def __repr__(self):
-        return f"<PopularActor(id={self.id}, film_id='{self.film_id}, counter='{self.counter}'"
+        return f"<({self.__tablename__}id={self.id}, counter='{self.counter}'"
 
 
 class PopularCategories(Base):
@@ -49,7 +51,7 @@ class PopularCategories(Base):
     counter = Column(Integer, nullable=False)
 
     def __repr__(self):
-        return f"<PopularActor(id={self.id}, film_id='{self.film_id}, counter='{self.counter}'"
+        return f"<{self.__tablename__}(id={self.id}, counter='{self.counter}'"
 
 
 all_table = {
